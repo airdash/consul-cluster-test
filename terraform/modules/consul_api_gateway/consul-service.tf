@@ -1,4 +1,4 @@
-resource "kubernetes_manifest" "nginx_consul_service_defaults" {
+resource "kubernetes_manifest" "service_defaults" {
   count = 1
 
   manifest = {
@@ -6,8 +6,8 @@ resource "kubernetes_manifest" "nginx_consul_service_defaults" {
     "kind"       = "ServiceDefaults"
 
     metadata = {
-      "name"      = "nginx-consul-identical-name"
-      "namespace" = "default"
+      "name"      = format("%s-service-defaults", var.service_name)
+      "namespace" = var.namespace
     }
 
     spec = {
@@ -17,7 +17,7 @@ resource "kubernetes_manifest" "nginx_consul_service_defaults" {
 }
 
 
-resource "kubernetes_manifest" "nginx_consul_service_resolver" {
+resource "kubernetes_manifest" "service_resolver" {
   count = 0
   manifest = {
     "apiVersion" = "consul.hashicorp.com/v1alpha1"
@@ -42,7 +42,7 @@ resource "kubernetes_manifest" "nginx_consul_service_resolver" {
   }
 }
 
-resource "kubernetes_manifest" "nginx_consul_service_router" {
+resource "kubernetes_manifest" "service_router" {
   count = 0
 
   manifest = {
@@ -69,7 +69,7 @@ resource "kubernetes_manifest" "nginx_consul_service_router" {
   }
 }
 
-resource "kubernetes_manifest" "nginx_consul_service_splitter" {
+resource "kubernetes_manifest" "service_splitter" {
   count = 0
 
   manifest = {
@@ -89,33 +89,3 @@ resource "kubernetes_manifest" "nginx_consul_service_splitter" {
     }
   }
 }
-
-# resource "kubernetes_manifest" "nginx-consul-identical-name-intentions" {
-#   manifest = {
-#     "apiVersion" = "consul.hashicorp.com/v1alpha1"
-#     "kind"       = "ServiceIntentions"
-#
-#     spec = {
-#       "destination" = {
-#         "name" = "nginx-first-test"
-#       "sources" = [{
-#          "name" = "nginx-first-test
-#         permissions:
-#         - action: allow
-#           http:
-#             pathExact: "/health"
-#         - action: allow
-#           http:
-#             pathPrefix: "/"
-#             methods:
-#             - GET
-#             - PUT
-#             - POST
-#             - DELETE
-#             header:
-#             - name: "Authorization"
-#               present: true
-#         - action: deny
-#           http:
-#             pathPrefix: "/"
-

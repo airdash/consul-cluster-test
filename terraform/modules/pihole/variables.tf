@@ -1,5 +1,5 @@
 variable "chart_version" {
-  default = ""
+  default = "2.5.8"
 }
 
 variable "domain" {}

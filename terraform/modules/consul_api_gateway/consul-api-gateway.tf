@@ -1,24 +1,13 @@
 locals {
-  http_listeners = [ for listener in var.tcp_listeners : {
-    "allowedRoutes" = {
-      "namespace" = {
-        "from" = "Same"
-      }
-    }
 
+  http_listeners = [ for listener in var.http_listeners : {
     "hostname" = listener.hostname
-    "name"     = format("%s-%s-%s", var.service_name, listener.protocol, listener.port)
+    "name"     = format("%s-%s-%s", var.service_name, "http", listener.port)
     "port"     = listener.port
-    "protocol" = listener.protocol
+    "protocol" = "http"
   }]
 
   https_listeners = [ for listener in var.https_listeners : {
-    "allowedRoutes" = {
-      "namespace" = {
-        "from" = "Same"
-      }
-    }
-
     "tls" = {
       "certificateRefs" = {
         "name" = listener.tls_certificate
@@ -26,38 +15,75 @@ locals {
     }
 
     "hostname" = listener.hostname
-    "name"     = format("%s-%s-%s", var.service_name, listener.protocol, listener.port)
+    "name"     = format("%s-%s-%s", var.service_name, "https", listener.port)
     "port"     = listener.port
     "protocol" = "http"
   }]
 
   tcp_listeners = [ for listener in var.tcp_listeners : {
-    "allowedRoutes" = {
-      "namespace" = {
-        "from" = "Same"
-      }
-    }
-
-    "name"     = format("%s-%s-%s", var.service_name, listener.protocol, listener.port)
+    "name"     = format("%s-%s-%s", var.service_name, "tcp", listener.port)
     "port"     = listener.port
-    "protocol" = listener.protocol
+    "protocol" = "tcp"
   }]
 
   udp_listeners = [ for listener in var.udp_listeners : {
-    "allowedRoutes" = { 
-      "namespace" = { 
-        "from" = "Same"
-      }
-    }
-
-    "hostname" = listener.hostname
-    "name"     = format("%s-%s-%s", var.service_name, listener.protocol, listener.port)
+    "name"     = format("%s-%s-%s", var.service_name, "udp", listener.port)
     "port"     = listener.port
     "protocol" = "udp"
   }]
 
-  tcp_gateway_enabled = length(setunion(var.tcp_listeners, var.http_listeners, var.https_listeners)) > 0 ? 1 : 0
-  udp_gateway_enabled = length(var.udp_listeners) > 0 ? 1 : 0
+  http_gateway_enabled  = length(var.http_listeners) > 0 ? 1 : 0
+  https_gateway_enabled = length(var.https_listeners) > 0 ? 1 : 0
+  tcp_gateway_enabled   = length(var.tcp_listeners) > 0 ? 1 : 0
+  udp_gateway_enabled   = length(var.udp_listeners) > 0 ? 1 : 0
+}
+
+resource "kubernetes_manifest" "http_gateway" {
+  count = local.http_gateway_enabled
+  manifest = {
+    "apiVersion" = "gateway.networking.k8s.io/v1alpha2"
+    "kind"       = "Gateway"
+
+    "metadata" = {
+      "annotations" = {
+        "external-dns.alpha.kubernetes.io/hostname" = var.hostname
+        "metallb.universe.tf/address-pool" = var.metallb_address_pool
+        "metallb.universe.tf/allow-shared-ip" = var.service_name
+      }
+
+      "name"      = format("%s-%s", var.service_name, "http-gateway")
+      "namespace" = var.namespace
+    }
+
+    "spec" = {
+      "gatewayClassName" = format("%s-gateway-class", var.service_name)
+      "listeners" = local.http_listeners
+    }
+  }
+}
+
+resource "kubernetes_manifest" "https_gateway" {
+  count = local.https_gateway_enabled
+  manifest = {
+    "apiVersion" = "gateway.networking.k8s.io/v1alpha2"
+    "kind"       = "Gateway"
+
+    "metadata" = {
+      "annotations" = {
+        "external-dns.alpha.kubernetes.io/hostname" = var.hostname
+        "metallb.universe.tf/address-pool" = var.metallb_address_pool
+        "metallb.universe.tf/allow-shared-ip" = var.service_name
+      }
+
+      "name"      = format("%s-%s", var.service_name, "https-gateway")
+      "namespace" = var.namespace
+    }
+
+    "spec" = {
+      "gatewayClassName" = format("%s-gateway-class", var.service_name)
+      "listeners" = local.https_listeners 
+    }
+  }
 }
 
 resource "kubernetes_manifest" "tcp_gateway" {
@@ -73,13 +99,13 @@ resource "kubernetes_manifest" "tcp_gateway" {
         "metallb.universe.tf/allow-shared-ip" = var.service_name
       }
 
-      "name"      = var.service_name
+      "name"      = format("%s-%s", var.service_name, "tcp-gateway")
       "namespace" = var.namespace
     }
 
     "spec" = {
       "gatewayClassName" = format("%s-gateway-class", var.service_name)
-      "listeners" = setunion(local.tcp_listeners, local.http_listeners, local.https_listeners)
+      "listeners" = local.tcp_listeners
     }
   }
 }
@@ -97,7 +123,7 @@ resource "kubernetes_manifest" "udp_gateway" {
         "metallb.universe.tf/allow-shared-ip" = var.service_name
       }
 
-      "name"      = var.service_name
+      "name"      = format("%s-%s", var.service_name, "udp-gateway")
       "namespace" = var.namespace
     }
 
@@ -129,8 +155,9 @@ resource "kubernetes_manifest" "gateway_class_config" {
       }
 
       "copyAnnotations" = {
-        "service" = [ "external-dns.alpha.kubernetes.io/hostname", "metallb.universe.tf/address-pool" ]
+        "service" = [ "external-dns.alpha.kubernetes.io/hostname", "metallb.universe.tf/address-pool", "metallb.universe.tf/allow-shared-ip" ]
       }
+
       "logLevel"     = "info"
       "serviceType"  = "LoadBalancer"
       "useHostPorts" = false
@@ -154,13 +181,14 @@ resource "kubernetes_manifest" "gateway_class" {
       "parametersRef" = {
         "group" = "api-gateway.consul.hashicorp.com"
         "kind"  = "GatewayClassConfig"
-        "name"  = "nginx-identical-gateway-class-config"
+        "name"  = format("%s-gateway-class-config", var.service_name)
       }
     }
   }
 }
 
 resource "kubernetes_manifest" "http_route" {
+  count = local.http_gateway_enabled
 
   manifest = {
 
@@ -174,13 +202,43 @@ resource "kubernetes_manifest" "http_route" {
 
     spec = {
       "parentRefs" = [{
-        "name" = format("%s-gateway", var.service_name)
+        "name"      = format("%s-%s", var.service_name, "http-gateway")
       }]
 
       "rules" = [{
-        "backendRefs" = [ for listener in setunion(local.http_listeners, local.https_listeners) : {
+        "backendRefs" = [ for listener in local.http_listeners : {
           "kind"      = "Service"
-          "name"      = var.service_name
+          "name"      = format("%s-%s-%s", var.service_name, "http", listener.port)
+          "namespace" = var.namespace
+          "port"      = listener.port
+        }]
+      }]
+    }
+  }
+}
+
+resource "kubernetes_manifest" "https_route" {
+  count = local.https_gateway_enabled
+
+  manifest = {
+
+    "apiVersion" = "gateway.networking.k8s.io/v1alpha2"
+    "kind"       = "HTTPRoute"
+
+    metadata = {
+      "name"      = format("%s-http-route", var.service_name)
+      "namespace" = var.namespace
+    }
+
+    spec = {
+      "parentRefs" = [{
+        "name"      = format("%s-%s", var.service_name, "https-gateway")
+      }]
+
+      "rules" = [{
+        "backendRefs" = [ for listener in local.https_listeners : {
+          "kind"      = "Service"
+          "name"      = format("%s-%s-%s", var.service_name, "https", listener.port)
           "namespace" = var.namespace
           "port"      = listener.port
         }]

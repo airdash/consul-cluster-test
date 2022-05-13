@@ -1,7 +1,20 @@
 persistentVolumeClaim:
   enabled: true
+  storageClass: nfs-dynamic
+
+serviceDns:
+  mixedService: true
+
+serviceDhcp:
+  enabled: false
 
 image:
   repository: "pihole/pihole"
   tag: "latest"
-  pullPolicy: "always"  
+  pullPolicy: "Always"  
+
+podAnnotations:
+  "consul.hashicorp.com/connect-inject": "true"
+  "consul.hashicorp.com/transparent-proxy": "true"
+  "consul.hashicorp.com/transparent-proxy-overwrite-probes": "true"
+

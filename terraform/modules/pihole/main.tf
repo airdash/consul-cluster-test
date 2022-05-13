@@ -1,5 +1,5 @@
 resource "helm_release" "pihole" {
-  repository       = "https://github.com/airdash/pihole-kubernetes.git"
+  repository       = "https://mojo2600.github.io/pihole-kubernetes/"
   chart            = "pihole"
   name             = "pihole"
   namespace        = "pihole"
@@ -15,29 +15,17 @@ module "consul_api_gateway" {
 
   domain   = var.domain
   hostname = format("pihole.%s", var.domain)
-  metallb_address_pool = "static-pool"
+  metallb_address_pool = "external-pool"
   namespace = "pihole"
   service_name = "pihole"
 
   http_listeners = [{
     hostname = format("pihole.%s", var.domain)
-    name     = "pihole-http"
     port     = "80"
-    protocol = "http"
   }]
 
   tcp_listeners = [{
     hostname = format("pihole.%s", var.domain)
-    name     = "pihole-tcp"
     port     = "53"
-    protocol = "tcp"
-  }]
-
-  udp_listeners = [{
-    hostname = format("pihole.%s", var.domain)
-    name     = "pihole-udp"
-    port     = "53"
-    protocol = "udp"
   }]
 }
-

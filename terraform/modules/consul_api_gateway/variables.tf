@@ -22,9 +22,7 @@ variable "service_name" {
 variable "http_listeners" { 
   type = set(object({
     hostname = string
-    name = string
     port = string
-    protocol = string
   }))
   default = []
 }
@@ -32,9 +30,7 @@ variable "http_listeners" {
 variable "https_listeners" { 
   type = set(object({
     hostname = string
-    name = string
     port = string
-    protocol = string
     tls_certificate = string
   }))
   default = []
@@ -43,9 +39,7 @@ variable "https_listeners" {
 variable "tcp_listeners" { 
   type = set(object({
     hostname = string
-    name = string
     port = string
-    protocol = string
   }))
   default = []
 }
@@ -53,9 +47,7 @@ variable "tcp_listeners" {
 variable "udp_listeners" { 
   type = set(object({
     hostname = string
-    name = string
     port = string
-    protocol = string
   }))
   default = []
 }
