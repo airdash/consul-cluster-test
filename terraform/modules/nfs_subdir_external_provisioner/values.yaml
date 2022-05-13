@@ -1,0 +1,8 @@
+nfs:
+  server: "10.50.0.2"
+  path: "/rpool/kubernetes/nfs-dynamic-volumes"
+  mountOptions: 
+    - "nfsvers=4.1" 
+    - "hard"
+storageClass:
+  name: "nfs-dynamic"

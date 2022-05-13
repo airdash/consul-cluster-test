@@ -1,0 +1,7 @@
+persistentVolumeClaim:
+  enabled: true
+
+image:
+  repository: "pihole/pihole"
+  tag: "latest"
+  pullPolicy: "always"  

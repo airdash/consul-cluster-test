@@ -1,0 +1,13 @@
+driver:
+  name: nfs2.csi.k8s.io
+controller:
+  name: csi-nfs2-controller 
+rbac:
+  name: nfs2 
+serviceAccount:
+  controller: csi-nfs2-controller-sa 
+  node: csi-nfs2-node-sa 
+node:
+  name: csi-nfs2-node 
+  livenessProbe: 
+    healthPort: 39653

@@ -1,0 +1,7 @@
+configInline:
+  address-pools:
+   - name: external-pool
+     protocol: layer2
+     addresses:
+     - 10.50.0.32/27
+     auto-assign: false

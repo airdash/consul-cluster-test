@@ -1,0 +1,44 @@
+global:
+  tls:
+    enabled: true
+    enableAutoEncrypt: true
+    httpsOnly: true
+  acls:
+    manageSystemACLs: false
+server:
+  storageClass: "nfs-dynamic"
+connectInject:
+  default: false
+  enabled: true
+  transparentProxy:
+    defaultEnabled: true
+controller:
+  enabled: true
+ingressGateways:
+  enabled: true
+  gateways:
+    - name: ingress-gateway-default
+      service:
+        type: LoadBalancer
+        ports:
+          - port: 443
+        annotations: |
+          'metallb.universe.tf/address-pool': external-pool
+syncCatalog:
+  enabled: false
+  default: false
+  toConsul: false
+  toK8S: false
+ui:
+  enabled: true
+  service:
+    type: LoadBalancer
+    annotations: |
+      'metallb.universe.tf/address-pool': external-pool
+apiGateway:
+  enabled: true
+  image: "hashicorp/consul-api-gateway:0.2.0"
+  managedGatewayClass:
+    serviceType: LoadBalancer
+    useHostPorts: false
+
